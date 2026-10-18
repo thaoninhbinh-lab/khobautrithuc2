@@ -1,0 +1,63 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Hàm tiện ích kiểm tra đăng nhập
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Hàm kiểm tra chủ sở hữu tài liệu
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Hàm kiểm tra vai trò Quản trị viên (Admin)
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.admin == true ||
+        request.auth.token.role == 'admin' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+
+    // 1. Bộ sưu tập hồ sơ người dùng (users)
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    // 2. Bộ sưu tập liên kết học liệu (links)
+    match /links/{linkId} {
+      // Bất kỳ ai (kể cả khách chưa đăng nhập) đều có thể đọc các liên kết được đánh dấu công khai (isPublic == true)
+      // Người dùng đã đăng nhập có thể đọc liên kết của chính họ hoặc khi là admin
+      allow read: if resource.data.isPublic == true || isOwner(resource.data.creatorId) || isAdmin();
+
+      // Chỉ người dùng đã đăng nhập mới được tạo liên kết, và creatorId phải khớp với UID của họ
+      allow create: if isAuthenticated() && request.resource.data.creatorId == request.auth.uid;
+
+      // Chỉ chủ sở hữu hoặc admin mới được sửa, xóa liên kết
+      allow update, delete: if isOwner(resource.data.creatorId) || isAdmin();
+    }
+
+    // 3. Bộ sưu tập kết quả & hoạt động học tập (study_records)
+    match /study_records/{recordId} {
+      // Admin và giáo viên có thể đọc tất cả kết quả; học sinh chỉ đọc kết quả của chính mình
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+
+      // Cho phép người dùng đã đăng nhập ghi nhận kết quả học tập của mình (hoặc giáo viên/admin nhập)
+      allow create: if isAuthenticated() && (
+        request.resource.data.userId == request.auth.uid || isAdmin()
+      );
+
+      // Chỉ admin hoặc người sở hữu mới được sửa/xóa bản ghi
+      allow update, delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+    }
+
+    // 4. Bộ sưu tập danh mục & chủ đề bài học (categories)
+    match /categories/{catId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+  }
+}

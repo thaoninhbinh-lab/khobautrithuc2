@@ -1,0 +1,6 @@
+{
+  "name": "KHO BÁU TRI THỨC!",
+  "description": "Kho báu tri thức - Kho học liệu 10 môn học Tiểu học (Trò chơi học tập & Video), tự động gom nhóm, chia sẻ công khai và quản trị phân quyền.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
