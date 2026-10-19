@@ -245,16 +245,24 @@ const MainApp: React.FC = () => {
     try {
       if (editingItem) {
         await updateLinkItem(editingItem.id, data, user);
-        setLinks((prev) => prev.map((l) => (l.id === editingItem.id ? { ...l, ...data } : l)));
-        addToast('Cập nhật học liệu thành công!');
+        setLinks((prev) =>
+          prev.map((l) =>
+            String(l.id) === String(editingItem.id) ? { ...l, ...data, id: l.id } : l
+          )
+        );
+        addToast('Cập nhật học liệu thành công!', 'success');
+        setEditingItem(null);
+        setIsLinkModalOpen(false);
       } else {
         const created = await createLink(data);
         setLinks((prev) => [created, ...prev]);
         addToast(
           data.isPublic
             ? 'Đã thêm học liệu ở chế độ Công khai thành công! 🌐'
-            : 'Đã thêm học liệu ở chế độ Riêng tư thành công! 🔒'
+            : 'Đã thêm học liệu ở chế độ Riêng tư thành công! 🔒',
+          'success'
         );
+        setIsLinkModalOpen(false);
       }
     } catch (err: any) {
       addToast(err.message || 'Không thể lưu học liệu.', 'error');
@@ -582,7 +590,7 @@ const MainApp: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="text-base">✨</span>
-            <span className="font-bold text-slate-800">Nguồn sáng tri thức</span>
+            <span className="font-bold text-slate-800">Kho báu tri thức</span>
             <span>— Đồng hành cùng giáo viên & học sinh Tiểu học</span>
           </div>
 
@@ -626,7 +634,10 @@ const MainApp: React.FC = () => {
 
       <LinkModal
         isOpen={isLinkModalOpen}
-        onClose={() => setIsLinkModalOpen(false)}
+        onClose={() => {
+          setIsLinkModalOpen(false);
+          setEditingItem(null);
+        }}
         onSave={handleSaveLink}
         editingItem={editingItem}
         defaultSubject={presetSubject}

@@ -57,6 +57,7 @@ export const LinkCard: React.FC<LinkCardProps> = ({
   }
 
   const isVideo = normalizeResourceType(item.resourceType) === 'video';
+  const isOther = normalizeResourceType(item.resourceType) === 'khac';
   const subjectName = normalizeSubjectName(item.subject);
 
   return (
@@ -64,6 +65,10 @@ export const LinkCard: React.FC<LinkCardProps> = ({
       className={`group relative bg-white rounded-3xl p-5 border transition-all duration-200 flex flex-col justify-between ${
         item.isPinned
           ? 'border-amber-300/90 shadow-md shadow-amber-500/10 ring-1 ring-amber-300/40 bg-gradient-to-b from-amber-50/20 to-white'
+          : isVideo
+          ? 'border-rose-100 hover:border-rose-300 shadow-xs hover:shadow-md'
+          : isOther
+          ? 'border-sky-100 hover:border-sky-300 shadow-xs hover:shadow-md'
           : 'border-emerald-100 hover:border-emerald-300 shadow-xs hover:shadow-md hover:shadow-emerald-900/5'
       }`}
     >
@@ -86,6 +91,13 @@ export const LinkCard: React.FC<LinkCardProps> = ({
             {isVideo && (
               <span className="px-3 py-1 rounded-xl text-caption-safe font-black flex items-center gap-1 bg-rose-100 text-rose-800 border border-rose-200">
                 <span>🎬 Video bài giảng</span>
+              </span>
+            )}
+
+            {/* Hiển thị Khác */}
+            {isOther && (
+              <span className="px-3 py-1 rounded-xl text-caption-safe font-black flex items-center gap-1 bg-sky-100 text-sky-800 border border-sky-200">
+                <span>📁 Khác</span>
               </span>
             )}
 
@@ -199,6 +211,8 @@ export const LinkCard: React.FC<LinkCardProps> = ({
             className={`h-10 px-4 rounded-xl font-black text-input-button inline-flex items-center justify-center gap-2 shadow-xs transition-all active:scale-98 cursor-pointer shrink-0 text-white ${
               isVideo
                 ? 'bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 shadow-rose-500/20'
+                : isOther
+                ? 'bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 shadow-sky-500/20'
                 : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-emerald-500/20'
             }`}
           >

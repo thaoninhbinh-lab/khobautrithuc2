@@ -27,16 +27,16 @@ export const DEFAULT_SCHOOL_NAME = 'Trường Tiểu học B Hải Xuân';
 export type ResourceType =
   | 'tro_choi'
   | 'video'
-  // Legacy types được tự động chuẩn hóa sang 'tro_choi' hoặc 'video'
+  | 'khac'
+  // Legacy types được tự động chuẩn hóa sang 3 loại chính
   | 'quizizz'
   | 'game_tuongtac'
   | 'ontap'
   | 'kiemtra'
   | 'tracnghiem'
-  | 'tailieu'
-  | 'khac';
+  | 'tailieu';
 
-export type ColumnCategory = 'tro_choi' | 'video';
+export type ColumnCategory = 'tro_choi' | 'video' | 'khac';
 
 export interface SubjectCard {
   id: string;

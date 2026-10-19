@@ -19,8 +19,10 @@ import {
   BookOpen,
   Filter,
   Home,
+  Download,
 } from 'lucide-react';
 import { DEFAULT_SUBJECT_CARDS, normalizeSubjectName, normalizeResourceType } from '../services/storageService';
+import { exportLessonsToExcel } from '../services/excelService';
 
 interface ThreeColumnResourceViewProps {
   links: LinkItem[];
@@ -312,7 +314,7 @@ export const ThreeColumnResourceView: React.FC<ThreeColumnResourceViewProps> = (
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [onlyPinned, setOnlyPinned] = useState(false);
   const [onlyFavorite, setOnlyFavorite] = useState(false);
-  const [filterType, setFilterType] = useState<'all' | 'tro_choi' | 'video'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'tro_choi' | 'video' | 'khac'>('all');
 
   // PHÂN TRANG (PAGINATION) - CỐ ĐỊNH 12 HỌC LIỆU MỖI TRANG
   const ITEMS_PER_PAGE = 12;
@@ -360,8 +362,8 @@ export const ThreeColumnResourceView: React.FC<ThreeColumnResourceViewProps> = (
     }
   };
 
-  // Xử lý khi chuyển Tab (Tất cả, Trò chơi, Video) kèm cuộn mượt
-  const handleTabChange = (type: 'all' | 'tro_choi' | 'video') => {
+  // Xử lý khi chuyển Tab (Tất cả, Trò chơi, Video, Khác) kèm cuộn mượt
+  const handleTabChange = (type: 'all' | 'tro_choi' | 'video' | 'khac') => {
     setFilterType(type);
     setCurrentPage(1);
     scrollToResourceList();
@@ -493,7 +495,7 @@ export const ThreeColumnResourceView: React.FC<ThreeColumnResourceViewProps> = (
     onlyFavorite,
   ]);
 
-  // PHÂN LOẠI VÀO ĐÚNG 2 LOẠI HỌC LIỆU DUY NHẤT: TRÒ CHƠI HỌC TẬP & VIDEO
+  // PHÂN LOẠI THÀNH 3 DẠNG HỌC LIỆU: TRÒ CHƠI TƯƠNG TÁC, VIDEO VÀ KHÁC
   const gameLinks = useMemo(() => {
     return sectionLinks.filter((l) => normalizeResourceType(l.resourceType) === 'tro_choi');
   }, [sectionLinks]);
@@ -502,12 +504,17 @@ export const ThreeColumnResourceView: React.FC<ThreeColumnResourceViewProps> = (
     return sectionLinks.filter((l) => normalizeResourceType(l.resourceType) === 'video');
   }, [sectionLinks]);
 
-  // Danh sách học liệu được hiển thị theo Tab đang chọn (Tất cả, Trò chơi, Video)
+  const otherLinks = useMemo(() => {
+    return sectionLinks.filter((l) => normalizeResourceType(l.resourceType) === 'khac');
+  }, [sectionLinks]);
+
+  // Danh sách học liệu được hiển thị theo Tab đang chọn (Tất cả, Trò chơi, Video, Khác)
   const displayedLinks = useMemo(() => {
     if (filterType === 'tro_choi') return gameLinks;
     if (filterType === 'video') return videoLinks;
+    if (filterType === 'khac') return otherLinks;
     return sectionLinks;
-  }, [filterType, gameLinks, videoLinks, sectionLinks]);
+  }, [filterType, gameLinks, videoLinks, otherLinks, sectionLinks]);
 
   // TÍNH TOÁN PHÂN TRANG (TỐI ĐA 12 HỌC LIỆU MỖI TRANG)
   const totalItems = displayedLinks.length;
@@ -936,11 +943,31 @@ export const ThreeColumnResourceView: React.FC<ThreeColumnResourceViewProps> = (
               {videoLinks.length}
             </span>
           </button>
+
+          {/* TAB 4: KHÁC */}
+          <button
+            type="button"
+            onClick={() => handleTabChange('khac')}
+            className={`px-4 sm:px-5 py-2.5 rounded-xl text-input-button font-black transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 select-none ${
+              filterType === 'khac'
+                ? 'bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-md shadow-sky-700/20 ring-1 ring-sky-500'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
+            }`}
+          >
+            <span>📁 Khác</span>
+            <span
+              className={`px-2 py-0.5 rounded-full text-caption-safe font-black ${
+                filterType === 'khac' ? 'bg-white/20 text-white' : 'bg-slate-200/90 text-slate-700'
+              }`}
+            >
+              {otherLinks.length}
+            </span>
+          </button>
         </div>
 
-        {/* Nút thêm nhanh Trò chơi / Video cho Giáo viên và Admin */}
+        {/* Nút thêm nhanh Trò chơi / Video / Khác cho Giáo viên và Admin */}
         {canManage && (
-          <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
+          <div className="flex items-center gap-2 shrink-0 self-end md:self-auto flex-wrap">
             {(filterType === 'all' || filterType === 'tro_choi') && (
               <button
                 type="button"
@@ -963,6 +990,17 @@ export const ThreeColumnResourceView: React.FC<ThreeColumnResourceViewProps> = (
                 <span>+ Video</span>
               </button>
             )}
+            {(filterType === 'all' || filterType === 'khac') && (
+              <button
+                type="button"
+                onClick={() => handleAddNewResource('khac')}
+                className="px-3.5 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-caption-safe sm:text-input-button flex items-center gap-1.5 transition-colors cursor-pointer border border-sky-200 shadow-2xs"
+                title="Thêm học liệu khác vào môn hiện tại"
+              >
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+                <span>+ Khác</span>
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -971,13 +1009,15 @@ export const ThreeColumnResourceView: React.FC<ThreeColumnResourceViewProps> = (
       {displayedLinks.length === 0 ? (
         <div className="text-center py-16 px-4 rounded-3xl bg-white border border-dashed border-emerald-200 shadow-xs">
           <span className="text-5xl block mb-3">
-            {filterType === 'video' ? '🎬' : filterType === 'tro_choi' ? '🎮' : '🎯'}
+            {filterType === 'video' ? '🎬' : filterType === 'tro_choi' ? '🎮' : filterType === 'khac' ? '📁' : '🎯'}
           </span>
           <h3 className="text-title-section text-slate-800 font-bold mb-1">
             {filterType === 'video'
               ? 'Chưa có Video bài giảng nào phù hợp'
               : filterType === 'tro_choi'
               ? 'Chưa có Trò chơi tương tác nào phù hợp'
+              : filterType === 'khac'
+              ? 'Chưa có học liệu khác nào phù hợp'
               : 'Chưa có học liệu nào phù hợp'}
           </h3>
           <p className="text-desc text-slate-500 mb-5 max-w-md mx-auto">
@@ -996,18 +1036,30 @@ export const ThreeColumnResourceView: React.FC<ThreeColumnResourceViewProps> = (
             )}
             {canManage && (
               <>
-                <button
-                  onClick={() => handleAddNewResource('tro_choi')}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-input-button shadow-xs cursor-pointer"
-                >
-                  + Thêm trò chơi tương tác
-                </button>
-                <button
-                  onClick={() => handleAddNewResource('video')}
-                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-input-button shadow-xs cursor-pointer"
-                >
-                  + Thêm video bài giảng
-                </button>
+                {(filterType === 'all' || filterType === 'tro_choi') && (
+                  <button
+                    onClick={() => handleAddNewResource('tro_choi')}
+                    className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-input-button shadow-xs cursor-pointer"
+                  >
+                    + Thêm trò chơi tương tác
+                  </button>
+                )}
+                {(filterType === 'all' || filterType === 'video') && (
+                  <button
+                    onClick={() => handleAddNewResource('video')}
+                    className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-input-button shadow-xs cursor-pointer"
+                  >
+                    + Thêm video bài giảng
+                  </button>
+                )}
+                {(filterType === 'all' || filterType === 'khac') && (
+                  <button
+                    onClick={() => handleAddNewResource('khac')}
+                    className="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-input-button shadow-xs cursor-pointer"
+                  >
+                    + Thêm học liệu khác
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -1017,8 +1069,21 @@ export const ThreeColumnResourceView: React.FC<ThreeColumnResourceViewProps> = (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             {paginatedLinks.map((item) => {
             const isVideo = normalizeResourceType(item.resourceType) === 'video';
-            const isOwner = user?.uid && item.creatorId === user.uid;
-            const canEditOrDelete = isAdmin || isOwner;
+            const isOther = normalizeResourceType(item.resourceType) === 'khac';
+            const isOwner = Boolean(
+              user && (
+                (item.creatorId && user.uid && String(item.creatorId) === String(user.uid)) ||
+                (item.creatorName && user.displayName && item.creatorName.trim().toLowerCase() === user.displayName.trim().toLowerCase()) ||
+                (item.creatorEmail && user.email && item.creatorEmail.trim().toLowerCase() === user.email.trim().toLowerCase())
+              )
+            );
+            const isAssignedTeacher = Boolean(
+              isTeacher && (
+                (Array.isArray(user?.subjects) && user?.subjects.some((s) => s === item.subject || normalizeSubjectName(s) === normalizeSubjectName(item.subject))) ||
+                (!user?.subjects || user.subjects.length === 0)
+              )
+            );
+            const canEditOrDelete = isAdmin || isOwner || isAssignedTeacher;
             const subBadge = getSubjectBadgeInfo(item.subject);
 
             return (
@@ -1029,6 +1094,8 @@ export const ThreeColumnResourceView: React.FC<ThreeColumnResourceViewProps> = (
                     ? 'border-amber-300 ring-1 ring-amber-300/40 bg-amber-50/20'
                     : isVideo
                     ? 'border-rose-100 hover:border-rose-300'
+                    : isOther
+                    ? 'border-sky-100 hover:border-sky-300'
                     : 'border-emerald-100 hover:border-emerald-300'
                 }`}
               >
@@ -1054,6 +1121,13 @@ export const ThreeColumnResourceView: React.FC<ThreeColumnResourceViewProps> = (
                       {isVideo && (
                         <span className="text-caption-safe font-bold px-2.5 py-0.5 rounded-md flex items-center gap-1 bg-rose-100 text-rose-900 border border-rose-200">
                           <span>🎬 Video</span>
+                        </span>
+                      )}
+
+                      {/* Hiển thị huy hiệu Khác */}
+                      {isOther && (
+                        <span className="text-caption-safe font-bold px-2.5 py-0.5 rounded-md flex items-center gap-1 bg-sky-100 text-sky-900 border border-sky-200">
+                          <span>📁 Khác</span>
                         </span>
                       )}
 
@@ -1136,7 +1210,7 @@ export const ThreeColumnResourceView: React.FC<ThreeColumnResourceViewProps> = (
                 {/* Cụm nút thao tác ở chân thẻ: CĂN CHÍNH GIỮA (CENTER), THU GỌN VỪA VẶN, GAP ĐỀU */}
                 <div
                   className={`pt-3 border-t flex items-center justify-center gap-2 flex-wrap ${
-                    isVideo ? 'border-rose-100' : 'border-emerald-100'
+                    isVideo ? 'border-rose-100' : isOther ? 'border-sky-100' : 'border-emerald-100'
                   }`}
                 >
                   {/* NÚT THAM GIA: Icon phi thuyền 🚀 phóng vào học liệu */}
@@ -1145,6 +1219,8 @@ export const ThreeColumnResourceView: React.FC<ThreeColumnResourceViewProps> = (
                     className={`h-10 px-4 rounded-xl text-white font-black text-input-button inline-flex items-center justify-center gap-2 shadow-xs transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0 ${
                       isVideo
                         ? 'bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 shadow-rose-500/20'
+                        : isOther
+                        ? 'bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 shadow-sky-500/20'
                         : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-emerald-500/20'
                     }`}
                   >

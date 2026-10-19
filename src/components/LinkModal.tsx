@@ -209,11 +209,11 @@ export const LinkModal: React.FC<LinkModalProps> = ({
         playCount: editingItem ? editingItem.playCount : 0,
         createdAt: editingItem ? editingItem.createdAt : new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        creatorId: user?.uid || 'guest-user',
-        creatorName: user?.displayName || 'Thầy/Cô Giáo',
-        creatorSchool: user?.school || 'Tiểu học',
-        creatorEmail: user?.email || '',
-        creatorRole: user?.role || 'teacher',
+        creatorId: editingItem?.creatorId || user?.uid || 'guest-user',
+        creatorName: editingItem?.creatorName || user?.displayName || 'Thầy/Cô Giáo',
+        creatorSchool: editingItem?.creatorSchool || user?.school || 'Tiểu học',
+        creatorEmail: editingItem?.creatorEmail || user?.email || '',
+        creatorRole: editingItem?.creatorRole || user?.role || 'teacher',
       });
       onClose();
     } catch (err: any) {
@@ -318,12 +318,12 @@ export const LinkModal: React.FC<LinkModalProps> = ({
             </div>
           </div>
 
-          {/* 3. Chọn Loại học liệu (ĐÚNG 2 LỰA CHỌN: TRÒ CHƠI HỌC TẬP & VIDEO) */}
+          {/* 3. Chọn Loại học liệu: TRÒ CHƠI HỌC TẬP, VIDEO, HOẶC KHÁC */}
           <div>
             <label className="block text-main-body font-bold text-slate-800 mb-1.5">
               3. Chọn Loại học liệu <span className="text-rose-500">*</span>
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div
                 onClick={() => setResourceType('tro_choi')}
                 className={`p-3.5 rounded-2xl border cursor-pointer flex items-center gap-3 transition-all select-none ${
@@ -336,9 +336,9 @@ export const LinkModal: React.FC<LinkModalProps> = ({
                   🎮
                 </div>
                 <div>
-                  <p className="text-main-body font-black text-emerald-900">Trò chơi học tập</p>
+                  <p className="text-main-body font-black text-emerald-900">Trò chơi tương tác</p>
                   <p className="text-caption-safe text-slate-500 font-medium">
-                    Quizizz, Wordwall, Kahoot, Scratch, trắc nghiệm tương tác
+                    Quizizz, Wordwall, Kahoot, Scratch, trắc nghiệm
                   </p>
                 </div>
               </div>
@@ -355,9 +355,28 @@ export const LinkModal: React.FC<LinkModalProps> = ({
                   🎥
                 </div>
                 <div>
-                  <p className="text-main-body font-black text-rose-900">Video</p>
+                  <p className="text-main-body font-black text-rose-900">Video bài giảng</p>
                   <p className="text-caption-safe text-slate-500 font-medium">
-                    Video bài học, bài giảng hoạt hình 3D, clip thực hành
+                    Video bài học, clip hướng dẫn thực hành
+                  </p>
+                </div>
+              </div>
+
+              <div
+                onClick={() => setResourceType('khac')}
+                className={`p-3.5 rounded-2xl border cursor-pointer flex items-center gap-3 transition-all select-none ${
+                  resourceType === 'khac'
+                    ? 'bg-sky-50 border-sky-500 text-sky-950 font-black shadow-xs ring-2 ring-sky-400'
+                    : 'bg-slate-50 border-slate-200 text-slate-600 font-semibold hover:bg-slate-100'
+                }`}
+              >
+                <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center text-xl shrink-0">
+                  📁
+                </div>
+                <div>
+                  <p className="text-main-body font-black text-sky-900">Khác</p>
+                  <p className="text-caption-safe text-slate-500 font-medium">
+                    Tài liệu, phiếu bài tập, liên kết học tập khác
                   </p>
                 </div>
               </div>

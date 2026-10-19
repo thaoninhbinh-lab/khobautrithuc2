@@ -6,6 +6,7 @@ import {
   LinkVisitAggregatedStat,
 } from '../services/supabaseService';
 import { getSupabaseConfig, testSupabaseConnection } from '../supabase/client';
+import { normalizeResourceType, normalizeSubjectName } from '../services/storageService';
 import {
   Eye,
   BookOpen,
@@ -126,9 +127,12 @@ export const LinkVisitStatsSection: React.FC<LinkVisitStatsSectionProps> = ({
 
       // Lọc loại học liệu
       if (selectedType !== 'all') {
+        const norm = normalizeResourceType(item.resourceType);
+        if (selectedType === 'tro_choi' && norm !== 'tro_choi') return false;
+        if (selectedType === 'video' && norm !== 'video') return false;
+        if (selectedType === 'khac' && norm !== 'khac') return false;
         if (selectedType === 'quizizz' && item.resourceType !== 'quizizz') return false;
         if (selectedType === 'game_tuongtac' && item.resourceType !== 'game_tuongtac') return false;
-        if (selectedType === 'video' && item.resourceType !== 'video') return false;
       }
 
       // Lọc khoảng thời gian có truy cập
@@ -444,9 +448,9 @@ export const LinkVisitStatsSection: React.FC<LinkVisitStatsSectionProps> = ({
             className="px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-input-button font-bold text-slate-700 outline-hidden"
           >
             <option value="all">Tất cả loại bài</option>
-            <option value="quizizz">⚡ Quizizz</option>
-            <option value="game_tuongtac">🎮 Game tương tác</option>
+            <option value="tro_choi">🎮 Trò chơi tương tác</option>
             <option value="video">🎥 Video bài học</option>
+            <option value="khac">📁 Khác</option>
           </select>
 
           {/* Sắp xếp */}
@@ -514,50 +518,49 @@ export const LinkVisitStatsSection: React.FC<LinkVisitStatsSectionProps> = ({
 
                     {/* Tên học liệu */}
                     <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-lg shrink-0">
-                          {item.resourceType === 'quizizz'
-                            ? '⚡'
-                            : item.resourceType === 'video'
-                            ? '🎥'
-                            : '🎮'}
-                        </span>
-                        <div>
-                          <p
-                            className="font-black text-slate-900 line-clamp-1 hover:text-emerald-700 transition-colors text-main-body"
-                            title={item.title}
-                          >
-                            {item.title}
-                          </p>
-                          <span
-                            className={`inline-block text-caption-safe font-bold px-2 py-0.5 rounded-md mt-0.5 ${
-                              item.resourceType === 'quizizz'
-                                ? 'bg-purple-100 text-purple-800'
-                                : item.resourceType === 'video'
-                                ? 'bg-rose-100 text-rose-800'
-                                : 'bg-emerald-100 text-emerald-800'
-                            }`}
-                          >
-                            {item.resourceType === 'quizizz'
-                              ? 'Quizizz'
-                              : item.resourceType === 'video'
-                              ? 'Video'
-                              : 'Game tương tác'}
-                          </span>
-                        </div>
-                      </div>
+                      {(() => {
+                        const normType = normalizeResourceType(item.resourceType);
+                        return (
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-lg shrink-0">
+                              {normType === 'video'
+                                ? '🎥'
+                                : normType === 'khac'
+                                ? '📁'
+                                : '🎮'}
+                            </span>
+                            <div>
+                              <p
+                                className="font-black text-slate-900 line-clamp-1 hover:text-emerald-700 transition-colors text-main-body"
+                                title={item.title}
+                              >
+                                {item.title}
+                              </p>
+                              <span
+                                className={`inline-block text-caption-safe font-bold px-2 py-0.5 rounded-md mt-0.5 ${
+                                  normType === 'video'
+                                    ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                                    : normType === 'khac'
+                                    ? 'bg-sky-100 text-sky-800 border border-sky-200'
+                                    : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                }`}
+                              >
+                                {normType === 'video'
+                                  ? 'Video bài học'
+                                  : normType === 'khac'
+                                  ? 'Khác'
+                                  : 'Trò chơi'}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     {/* Môn học */}
                     <td className="py-3.5 px-3 whitespace-nowrap font-bold">
-                      <span
-                        className={`px-2.5 py-1 rounded-md text-caption-safe ${
-                          item.subject === 'tinhoc'
-                            ? 'bg-teal-50 text-teal-800 border border-teal-200'
-                            : 'bg-amber-50 text-amber-800 border border-amber-200'
-                        }`}
-                      >
-                        {item.subject === 'tinhoc' ? 'Tin học' : 'Công nghệ'}
+                      <span className="px-2.5 py-1 rounded-md text-caption-safe bg-emerald-50 text-emerald-900 border border-emerald-200 font-bold">
+                        {normalizeSubjectName(item.subject)}
                       </span>
                     </td>
 

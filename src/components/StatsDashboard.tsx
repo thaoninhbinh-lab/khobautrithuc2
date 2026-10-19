@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StudyRecord, SubjectType, GradeLevel, UserProfile, AccessLog, LinkItem } from '../types';
-import { exportRecordsToCSV, exportAccessLogsToCSV } from '../services/storageService';
+import { exportRecordsToCSV, exportAccessLogsToCSV, normalizeResourceType } from '../services/storageService';
 import { useAuth } from '../contexts/AuthContext';
 import {
   BarChart3,
@@ -89,9 +89,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
   const classList = Object.keys(studentsByClass).sort();
 
-  // - Số lượng học liệu với đúng 2 loại học liệu: Trò chơi học tập & Video
-  const gameCount = links.filter((l) => (l.resourceType as any) === 'tro_choi' || l.resourceType === 'quizizz' || l.resourceType === 'game_tuongtac' || !l.resourceType || l.resourceType !== 'video').length;
-  const videoCount = links.filter((l) => l.resourceType === 'video').length;
+  // - Số lượng học liệu theo 3 loại: Trò chơi học tập, Video, Khác
+  const gameCount = links.filter((l) => normalizeResourceType(l.resourceType) === 'tro_choi').length;
+  const videoCount = links.filter((l) => normalizeResourceType(l.resourceType) === 'video').length;
+  const otherCount = links.filter((l) => normalizeResourceType(l.resourceType) === 'khac').length;
 
   // Tổng số lượt truy cập
   const totalAccessCount = accessLogs.length;
@@ -295,8 +296,9 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 </p>
               </div>
               <div className="mt-2 text-caption-safe font-bold text-slate-600 flex flex-wrap gap-1.5">
-                <span className="text-emerald-700">🎮 {gameCount} Trò chơi học tập</span> •{' '}
-                <span className="text-rose-600">🎥 {videoCount} Video</span>
+                <span className="text-emerald-700">🎮 {gameCount} Trò chơi</span> •{' '}
+                <span className="text-rose-600">🎥 {videoCount} Video</span> •{' '}
+                <span className="text-sky-700">📁 {otherCount} Khác</span>
               </div>
             </div>
 

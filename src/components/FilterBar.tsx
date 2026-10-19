@@ -173,8 +173,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             className="px-3.5 py-2 rounded-2xl bg-slate-100/90 text-xs font-black text-slate-800 border border-slate-200 hover:border-emerald-300 outline-hidden cursor-pointer"
           >
             <option value="all">🎯 Tất cả dạng học liệu</option>
-            <option value="tro_choi">🎮 Trò chơi học tập</option>
+            <option value="tro_choi">🎮 Trò chơi tương tác</option>
             <option value="video">🎥 Video bài giảng</option>
+            <option value="khac">📁 Khác</option>
           </select>
         </div>
       </div>

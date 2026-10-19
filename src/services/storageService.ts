@@ -151,9 +151,10 @@ export const DEFAULT_SUBJECT_CARDS: SubjectCard[] = SYSTEM_DEFAULT_SUBJECTS.flat
   }))
 );
 
-// Chuẩn hóa loại học liệu về đúng 2 loại: 'tro_choi' hoặc 'video'
+// Chuẩn hóa loại học liệu về 3 loại chính: 'tro_choi', 'video' hoặc 'khac'
 export const normalizeResourceType = (type: any): ResourceType => {
   if (type === 'video') return 'video';
+  if (type === 'khac' || type === 'tailieu' || type === 'other') return 'khac';
   return 'tro_choi';
 };
 
@@ -262,17 +263,32 @@ export const createLink = async (item: Omit<LinkItem, 'id'>): Promise<LinkItem> 
 };
 
 // Cập nhật liên kết
+// Cập nhật liên kết
 export const updateLinkItem = async (
   id: string,
   updates: Partial<LinkItem>,
   user?: UserProfile | null
 ): Promise<void> => {
   const current = await fetchLinks();
-  const existing = current.find((l) => l.id === id);
+  const existing = current.find((l) => String(l.id) === String(id));
 
-  // Kiểm tra quyền: Chỉ Admin hoặc chính chủ sở hữu mới được sửa
-  if (user && user.role !== 'admin' && existing && existing.creatorId !== user.uid) {
-    throw new Error('Bạn chỉ có quyền chỉnh sửa học liệu do chính mình tạo!');
+  // Kiểm tra quyền: Admin, chính chủ sở hữu bài học (theo ID hoặc Tên/Email), hoặc giáo viên phụ trách môn
+  const isOwner = Boolean(
+    user && existing && (
+      (existing.creatorId && user.uid && String(existing.creatorId) === String(user.uid)) ||
+      (existing.creatorName && user.displayName && existing.creatorName.trim().toLowerCase() === user.displayName.trim().toLowerCase()) ||
+      (existing.creatorEmail && user.email && existing.creatorEmail.trim().toLowerCase() === user.email.trim().toLowerCase())
+    )
+  );
+  const isAssignedTeacher = Boolean(
+    user && user.role === 'teacher' && existing && (
+      (Array.isArray(user.subjects) && user.subjects.some((s) => s === existing.subject || normalizeSubjectName(s) === normalizeSubjectName(existing.subject))) ||
+      (!user.subjects || user.subjects.length === 0)
+    )
+  );
+
+  if (user && user.role !== 'admin' && !isOwner && !isAssignedTeacher) {
+    throw new Error('Bạn chỉ có quyền chỉnh sửa học liệu do chính mình tạo hoặc thuộc môn phân hệ phụ trách!');
   }
 
   const normalizedUpdates = {
@@ -284,9 +300,13 @@ export const updateLinkItem = async (
   const supaConf = getSupabaseConfig();
   if (supaConf.isConfigured) {
     try {
-      await updateLessonInSupabase(id, normalizedUpdates);
-    } catch (e) {
+      const ok = await updateLessonInSupabase(id, normalizedUpdates);
+      if (!ok) {
+        console.warn('Lưu ý: Supabase chưa cập nhật được học liệu này, lưu vào local storage');
+      }
+    } catch (e: any) {
       console.warn('Lỗi cập nhật Supabase lesson:', e);
+      throw new Error(e?.message || 'Không thể lưu học liệu lên Supabase. Vui lòng thử lại!');
     }
   }
 
@@ -300,18 +320,32 @@ export const updateLinkItem = async (
     }
   }
 
-  const updated = current.map((item) => (item.id === id ? { ...item, ...normalizedUpdates } : item));
+  const updated = current.map((item) => (String(item.id) === String(id) ? { ...item, ...normalizedUpdates } : item));
   saveLocalLinks(updated);
 };
 
 // Xóa liên kết
 export const deleteLinkItem = async (id: string, user?: UserProfile | null): Promise<void> => {
   const current = await fetchLinks();
-  const existing = current.find((l) => l.id === id);
+  const existing = current.find((l) => String(l.id) === String(id));
 
-  // Kiểm tra quyền: Chỉ Admin hoặc chính chủ sở hữu mới được xóa
-  if (user && user.role !== 'admin' && existing && existing.creatorId !== user.uid) {
-    throw new Error('Bạn chỉ có quyền xóa học liệu do chính mình tạo!');
+  // Kiểm tra quyền: Admin, chính chủ sở hữu bài học, hoặc giáo viên phụ trách môn
+  const isOwner = Boolean(
+    user && existing && (
+      (existing.creatorId && user.uid && String(existing.creatorId) === String(user.uid)) ||
+      (existing.creatorName && user.displayName && existing.creatorName.trim().toLowerCase() === user.displayName.trim().toLowerCase()) ||
+      (existing.creatorEmail && user.email && existing.creatorEmail.trim().toLowerCase() === user.email.trim().toLowerCase())
+    )
+  );
+  const isAssignedTeacher = Boolean(
+    user && user.role === 'teacher' && existing && (
+      (Array.isArray(user.subjects) && user.subjects.some((s) => s === existing.subject || normalizeSubjectName(s) === normalizeSubjectName(existing.subject))) ||
+      (!user.subjects || user.subjects.length === 0)
+    )
+  );
+
+  if (user && user.role !== 'admin' && !isOwner && !isAssignedTeacher) {
+    throw new Error('Bạn chỉ có quyền xóa học liệu do chính mình tạo hoặc thuộc môn phân hệ phụ trách!');
   }
 
   // 1. Xóa trong bảng lessons trên Supabase
@@ -333,7 +367,7 @@ export const deleteLinkItem = async (id: string, user?: UserProfile | null): Pro
     }
   }
 
-  const updated = current.filter((item) => item.id !== id);
+  const updated = current.filter((item) => String(item.id) !== String(id));
   saveLocalLinks(updated);
 };
 

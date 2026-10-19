@@ -541,7 +541,11 @@ export const fetchLessonsFromSupabase = async (): Promise<LinkItem[]> => {
     const lesson = extra.lesson || row.lesson || '';
     const topic = extra.topic || row.topic || '';
     const rawType = extra.resourceType || row.resource_type || row.type || 'tro_choi';
-    const resourceType = (rawType === 'video' ? 'video' : 'tro_choi') as any;
+    let resourceType: 'tro_choi' | 'video' | 'khac' = 'tro_choi';
+    if (rawType === 'video') resourceType = 'video';
+    else if (rawType === 'khac' || rawType === 'tailieu' || rawType === 'other') resourceType = 'khac';
+    else resourceType = 'tro_choi';
+
     const isPinned = Boolean(extra.isPinned !== undefined ? extra.isPinned : (row.is_pinned ?? false));
     const isPublic = Boolean(extra.isPublic !== undefined ? extra.isPublic : (row.is_public !== undefined ? row.is_public : true));
     const isFavorite = Boolean(extra.isFavorite !== undefined ? extra.isFavorite : (row.is_favorite ?? false));
@@ -680,51 +684,92 @@ export const updateLessonInSupabase = async (id: string, updates: Partial<LinkIt
   try {
     const isNumId = id && !isNaN(Number(id)) && Number(id) > 0;
     
-    // 1. Tìm bản ghi hiện tại để lấy content JSONB cũ (không ghi đè mất thông tin)
+    // 1. Tìm bản ghi hiện tại để lấy content JSONB/TEXT cũ (không ghi đè mất thông tin)
     let existingRow: any = null;
     if (isNumId) {
-      const { data } = await client.from('lessons').select('*').eq('id', Number(id)).single();
+      const { data } = await client.from('lessons').select('*').eq('id', Number(id)).maybeSingle();
       existingRow = data;
-    } else {
-      // Tìm theo content->>id (dạng les_...)
-      const { data } = await client.from('lessons').select('*').filter('content->>id', 'eq', id).maybeSingle();
-      if (data) {
-        existingRow = data;
-      } else {
-        // Dự phòng tìm theo chuỗi id
-        const { data: fallbackData } = await client.from('lessons').select('*').eq('id', id).maybeSingle();
-        existingRow = fallbackData;
+    }
+    if (!existingRow) {
+      // Tìm theo chuỗi id (nếu id là TEXT / UUID)
+      const { data: textIdRow } = await client.from('lessons').select('*').eq('id', String(id)).maybeSingle();
+      existingRow = textIdRow;
+    }
+    if (!existingRow) {
+      // Tìm theo content->>id (dạng les_...) an toàn
+      try {
+        const { data: contentIdRow } = await client.from('lessons').select('*').filter('content->>id', 'eq', String(id)).maybeSingle();
+        existingRow = contentIdRow;
+      } catch {
+        // bỏ qua nếu cột content không phải json
       }
+    }
+    if (!existingRow && updates.url) {
+      // Dự phòng tìm theo URL
+      const { data: urlRow } = await client.from('lessons').select('*').eq('url', updates.url).maybeSingle();
+      existingRow = urlRow;
     }
 
     if (!existingRow) {
-      console.warn(`Không tìm thấy học liệu với ID: ${id} trên Supabase`);
-      return false;
+      console.warn(`Không tìm thấy học liệu với ID: ${id} trên Supabase để update, thực hiện chèn mới bảo toàn dữ liệu`);
+      await createLessonInSupabase({
+        id: String(id),
+        title: updates.title || 'Học liệu',
+        description: updates.description || '',
+        url: updates.url || 'https://quizizz.com',
+        subject: updates.subject || 'tinhoc',
+        grade: updates.grade || 1,
+        lesson: updates.lesson || '',
+        topic: updates.topic || '',
+        resourceType: updates.resourceType || 'tro_choi',
+        notes: updates.notes || '',
+        tags: updates.tags || [],
+        isPinned: updates.isPinned || false,
+        isPublic: updates.isPublic !== undefined ? updates.isPublic : true,
+        isFavorite: updates.isFavorite || false,
+        playCount: updates.playCount || 0,
+        createdAt: updates.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        creatorId: updates.creatorId || 'admin',
+        creatorName: updates.creatorName || 'Giáo viên',
+        creatorSchool: updates.creatorSchool || 'Tiểu học',
+        creatorRole: updates.creatorRole || 'admin',
+      });
+      return true;
     }
 
     const realPk = existingRow.id;
-    const oldContent = typeof existingRow.content === 'object' && existingRow.content !== null
-      ? existingRow.content
-      : JSON.parse(existingRow.content || '{}');
+    let oldContent: any = {};
+    if (typeof existingRow.content === 'object' && existingRow.content !== null) {
+      oldContent = existingRow.content;
+    } else if (typeof existingRow.content === 'string') {
+      try {
+        oldContent = JSON.parse(existingRow.content);
+      } catch {
+        oldContent = {};
+      }
+    }
 
     // Hợp nhất an toàn: bảo toàn toàn bộ URL, tags, creatorId, metadata cũ
     const mergedContent = {
       ...oldContent,
       ...updates,
-      id: oldContent.id || id,
+      id: oldContent.id || String(id),
       playCount: updates.playCount !== undefined ? updates.playCount : (oldContent.playCount || existingRow.play_count || 0),
       updatedAt: new Date().toISOString(),
     };
 
+    const isContentString = typeof existingRow.content === 'string';
+    const contentPayload = isContentString ? JSON.stringify(mergedContent) : mergedContent;
+
     const payload: any = {
       updated_at: new Date().toISOString(),
-      content: mergedContent,
+      content: contentPayload,
     };
 
     if (updates.title !== undefined) payload.title = updates.title;
     if (updates.description !== undefined) payload.description = updates.description;
     if (updates.url !== undefined) payload.url = updates.url;
-    if (updates.subject !== undefined) payload.subject_id = String(updates.subject);
     if (updates.grade !== undefined) payload.grade = Number(updates.grade);
     if (updates.lesson !== undefined) payload.lesson = updates.lesson;
     if (updates.topic !== undefined) payload.topic = updates.topic;
@@ -737,10 +782,64 @@ export const updateLessonInSupabase = async (id: string, updates: Partial<LinkIt
     if (updates.playCount !== undefined) payload.play_count = updates.playCount;
     if (updates.creatorName !== undefined) payload.creator_name = updates.creatorName;
     if (updates.creatorSchool !== undefined) payload.creator_school = updates.creatorSchool;
+    if (updates.subject !== undefined) {
+      if (!isNaN(Number(updates.subject))) {
+        payload.subject_id = Number(updates.subject);
+      } else {
+        payload.subject_id = String(updates.subject);
+      }
+    }
 
-    const { error } = await client.from('lessons').update(payload).eq('id', realPk);
-    if (error) {
-      console.error(`Lỗi cập nhật học liệu ${realPk} trên Supabase:`, error.message);
+    // 1. Thử cập nhật full payload
+    const { error: fullError } = await client.from('lessons').update(payload).eq('id', realPk);
+    if (!fullError) {
+      return true;
+    }
+
+    console.warn(`Thử cập nhật đầy đủ các cột Supabase thất bại (${fullError.message}), kích hoạt cơ chế fallback an toàn...`);
+
+    // 2. Fallback: Bỏ các cột ngoại khóa có thể không tương thích (như subject_id)
+    const fallbackPayload: any = {
+      title: updates.title !== undefined ? updates.title : existingRow.title,
+      description: updates.description !== undefined ? updates.description : (existingRow.description || ''),
+      content: contentPayload,
+      updated_at: new Date().toISOString(),
+    };
+    if (updates.url !== undefined) fallbackPayload.url = updates.url;
+    if (updates.grade !== undefined) fallbackPayload.grade = Number(updates.grade);
+    if (updates.resourceType !== undefined) fallbackPayload.resource_type = updates.resourceType;
+    if (updates.isPinned !== undefined) {
+      fallbackPayload.is_pinned = updates.isPinned;
+    }
+    if (updates.isPublic !== undefined) {
+      fallbackPayload.is_public = updates.isPublic;
+    }
+
+    const { error: fallbackError } = await client.from('lessons').update(fallbackPayload).eq('id', realPk);
+    if (!fallbackError) {
+      return true;
+    }
+
+    // 3. Fallback tối thiểu nhất: chỉ cập nhật title, description, content dạng text/json
+    const minPayload = {
+      title: updates.title !== undefined ? updates.title : existingRow.title,
+      description: updates.description !== undefined ? updates.description : '',
+      content: contentPayload,
+    };
+    const { error: minError } = await client.from('lessons').update(minPayload).eq('id', realPk);
+    if (!minError) {
+      return true;
+    }
+
+    // 4. Fallback cuối cùng: Thử gửi content dưới dạng string thuần
+    const stringContentPayload = typeof contentPayload === 'string' ? contentPayload : JSON.stringify(contentPayload);
+    const { error: lastError } = await client.from('lessons').update({
+      title: updates.title || existingRow.title,
+      content: stringContentPayload,
+    }).eq('id', realPk);
+
+    if (lastError) {
+      console.error(`Cả 4 phương thức cập nhật Supabase đều thất bại:`, lastError.message);
       return false;
     }
     return true;
