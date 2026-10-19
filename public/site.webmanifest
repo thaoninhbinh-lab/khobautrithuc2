@@ -1,0 +1,26 @@
+{
+  "name": "KHO BÁU TRI THỨC",
+  "short_name": "KHO BÁU TRI THỨC",
+  "description": "Kho báu tri thức - Kho học liệu 10 môn học Tiểu học (Trò chơi học tập, Video và tài liệu tương tác)",
+  "icons": [
+    {
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#059669",
+  "background_color": "#ecfdf5",
+  "display": "standalone",
+  "start_url": "/"
+}

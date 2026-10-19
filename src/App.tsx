@@ -103,6 +103,7 @@ const MainApp: React.FC = () => {
 
   // Tải dữ liệu ban đầu
   useEffect(() => {
+    document.title = 'KHO BÁU TRI THỨC';
     const loadInitialData = async () => {
       setLoading(true);
       try {

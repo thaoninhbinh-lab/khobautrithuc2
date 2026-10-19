@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <!-- Nền phối màu Xanh dương - Xanh ngọc tươi sáng -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="50%" stop-color="#0d9488" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+
+    <!-- Ánh sáng vàng kim cho ngôi sao tri thức -->
+    <linearGradient id="starGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="50%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+
+    <!-- Gradient trang sách bên trái -->
+    <linearGradient id="pageLeft" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#e0f2fe" />
+      <stop offset="100%" stop-color="#ffffff" />
+    </linearGradient>
+
+    <!-- Gradient trang sách bên phải -->
+    <linearGradient id="pageRight" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#e0f2fe" />
+    </linearGradient>
+  </defs>
+
+  <!-- Khung bo tròn thân thiện (Squircle) -->
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#bgGrad)" />
+  <rect x="3" y="3" width="58" height="58" rx="15" fill="none" stroke="#67e8f9" stroke-width="1.5" stroke-opacity="0.4" />
+
+  <!-- Bìa sách phía dưới -->
+  <path d="M12 48 C 22 44, 30 46, 32 52 C 34 46, 42 44, 52 48 L 52 50 C 42 46, 34 48, 32 54 C 30 48, 22 46, 12 50 Z" fill="#0369a1" />
+
+  <!-- Cuốn sách đang mở (Trang trái & Trang phải) -->
+  <!-- Trang trái -->
+  <path d="M13 33 C 21 30, 28 32, 32 37 L 32 49 C 28 45, 21 43, 13 46 Z" fill="url(#pageLeft)" />
+  <!-- Trang phải -->
+  <path d="M51 33 C 43 30, 36 32, 32 37 L 32 49 C 36 45, 43 43, 51 46 Z" fill="url(#pageRight)" />
+
+  <!-- Đường gân trang sách tinh tế -->
+  <path d="M16 38 C 21 36, 26 37, 29 40" fill="none" stroke="#38bdf8" stroke-width="1" stroke-linecap="round" opacity="0.6" />
+  <path d="M48 38 C 43 36, 38 37, 35 40" fill="none" stroke="#38bdf8" stroke-width="1" stroke-linecap="round" opacity="0.6" />
+  <path d="M16 42 C 21 40, 26 41, 29 44" fill="none" stroke="#38bdf8" stroke-width="1" stroke-linecap="round" opacity="0.6" />
+  <path d="M48 42 C 43 40, 38 41, 35 44" fill="none" stroke="#38bdf8" stroke-width="1" stroke-linecap="round" opacity="0.6" />
+
+  <!-- Sống sách trung tâm -->
+  <line x1="32" y1="37" x2="32" y2="52" stroke="#bae6fd" stroke-width="1.5" stroke-linecap="round" />
+
+  <!-- Ngôi sao tri thức lớn trung tâm (Tỏa sáng phía trên cuốn sách) -->
+  <path d="M32 9 L35 18 L44 19 L37 25 L39 34 L32 29 L25 34 L27 25 L20 19 L29 18 Z" fill="url(#starGrad)" stroke="#d97706" stroke-width="0.8" stroke-linejoin="round" />
+
+  <!-- Điểm nhấn ánh sao lấp lánh (Sparkles) -->
+  <!-- Tia sáng nhỏ bên trái -->
+  <path d="M17 15 Q 17 19 13 19 Q 17 19 17 23 Q 17 19 21 19 Q 17 19 17 15 Z" fill="#fef08a" />
+  <!-- Tia sáng nhỏ bên phải -->
+  <path d="M47 13 Q 47 17 43 17 Q 47 17 47 21 Q 47 17 51 17 Q 47 17 47 13 Z" fill="#fef08a" />
+</svg>
